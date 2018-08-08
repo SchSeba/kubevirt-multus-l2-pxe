@@ -129,6 +129,18 @@ spec:
           configMap:
             name: multus-cni-config
 ---
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: macvlan-conf
+spec: 
+  config: '{
+      "cniVersion": "0.3.0",
+      "type": "l2-bridge",
+      "bridge": "mynet0",
+      "ipam": {}
+    }'
+---
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
