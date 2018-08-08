@@ -64,13 +64,13 @@ metadata:
     tier: node
     app: multus
 data:
-  cni-conf.json: |
+  70-multus.conf: |
     {
       "name": "multus-cni-network",
       "type": "multus",
       "delegates": [{
         "type": "openshift-sdn",
-        "name:" "openshift.1",
+        "name": "openshift.1",
         "masterplugin": true
       }],
       "kubeconfig": "/etc/cni/net.d/multus.d/multus.kubeconfig"
@@ -116,8 +116,8 @@ spec:
           mountPath: /host/etc/cni/net.d
         - name: cnibin
           mountPath: /host/opt/cni/bin
-        - name: multus-cni-config
-          mountPath: /usr/src/multus-cni/images/70-multus.conf
+        - name: multus-cfg
+          mountPath: /usr/src/multus-cni/images/
       volumes:
         - name: cni
           hostPath:
@@ -132,7 +132,7 @@ spec:
 apiVersion: "k8s.cni.cncf.io/v1"
 kind: NetworkAttachmentDefinition
 metadata:
-  name: macvlan-conf
+  name: l2-bridge-conf
 spec: 
   config: '{
       "cniVersion": "0.3.0",
