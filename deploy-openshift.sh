@@ -14,12 +14,28 @@ yum -y install iscsi-initiator-utils
 
 # Create Origin latest repo, enter correct repository address
 cat >/etc/yum.repos.d/origin-latest.repo <<EOF
-[my-origin]
-name=Origin packages v3.10.0-rc.0
-baseurl=https://plain.resources.ovirt.org/repos/origin/3.10/v3.10.0-rc.0/
+[centos-openshift-origin310]
+name=CentOS OpenShift Origin
+baseurl=http://mirror.centos.org/centos/7/paas/x86_64/openshift-origin310/
 enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-PaaS
+
+[centos-openshift-origin-testing310]
+name=CentOS OpenShift Origin Testing
+baseurl=http://buildlogs.centos.org/centos/7/paas/x86_64/openshift-origin310/
+enabled=0
 gpgcheck=0
+gpgkey=file:///etc/pki/rpm-gpg/openshift-ansible-CentOS-SIG-PaaS
+
+[centos-openshift-origin-source310]
+name=CentOS OpenShift Origin Source
+baseurl=http://vault.centos.org/centos/7/paas/Source/openshift-origin310/
+enabled=0
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/openshift-ansible-CentOS-SIG-PaaS
 EOF
+
 
 # Install OpenShift packages
 yum install -y yum-utils \
@@ -48,7 +64,7 @@ openshift_ansible="/root/openshift-ansible"
 inventory_file="/root/inventory"
 master_ip=`ifconfig eth0 | grep 'inet ' | cut -d: -f2 | awk '{print $2}'`
 
-#git clone https://github.com/openshift/openshift-ansible.git -b v3.10.0-rc.0 $openshift_ansible
+#git clone https://github.com/openshift/openshift-ansible.git -b v3.10.0 $openshift_ansible
 
 # Create ansible inventory file
 cat >$inventory_file <<EOF
@@ -68,6 +84,9 @@ openshift_image_tag=v3.10.0-rc.0
 ansible_service_broker_registry_whitelist=['.*-apb$']
 openshift_node_kubelet_args={'max-pods': ['80'], 'pods-per-core': ['80']}
 openshift_master_admission_plugin_config={"ValidatingAdmissionWebhook":{"configuration":{"kind": "DefaultAdmissionConfig","apiVersion": "v1","disable": false}},"MutatingAdmissionWebhook":{"configuration":{"kind": "DefaultAdmissionConfig","apiVersion": "v1","disable": false}}}
+openshift_enable_excluders=false
+os_sdn_network_plugin_name='redhat/openshift-ovs-networkpolicy'
+
 
 [masters]
 localhost ansible_connection=local
@@ -77,7 +96,7 @@ localhost ansible_connection=local
 
 [nodes]
 # openshift_node_group_name should refer to a dictionary with matching key of name in list openshift_node_groups.
-localhost ansible_connection=local openshift_schedulable=true openshift_ip=$master_ip openshift_node_group_name="node-config-master-infra"
+localhost ansible_connection=local openshift_schedulable=true openshift_ip=$master_ip openshift_node_group_name="node-config-all-in-one"
 EOF
 
 # Install prerequisites
