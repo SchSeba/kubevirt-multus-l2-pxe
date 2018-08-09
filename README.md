@@ -5,7 +5,7 @@
 * admin privileges on the cluster
 * oc/kubectl command installed
 
-*note:* You can use the `deploy-openshift.sh` cript to create a test cluster localy. Copy the script to /root/ and run it.
+*note:* You can use the `deploy-openshift.sh` script to create a test cluster localy. Copy the script to /root/ and run it.
 
 ## Create the bridge
 
