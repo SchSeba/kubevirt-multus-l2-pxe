@@ -37,6 +37,13 @@ DEVICE=<physical-interface>
 ONBOOT=yes
 ```
 
+## Allow traffic from the bridge interface
+
+```
+iptables -I INPUT 1 -i <bridge-name> -j ACCEPT
+iptables -I FORWARD 1 -i <bridge-name> -j ACCEPT
+```
+
 ## Deploy multus with L2-bridge plugin
 
 ```
