@@ -3,3 +3,6 @@ go-build:
 
 docker-build:
 	docker build -t quay.io/schseba/l2-bridge-cni-plugin:latest .
+
+docker-push: go-build docker-build
+	docker push quay.io/schseba/l2-bridge-cni-plugin:latest

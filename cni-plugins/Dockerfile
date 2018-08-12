@@ -1,6 +1,6 @@
 FROM centos:latest
 
-ADD . /usr/src/cni-plugins/
+ADD ./plugins/ /usr/src/cni-plugins/
 
 WORKDIR /
 
