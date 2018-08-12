@@ -19,9 +19,6 @@ import (
 	"fmt"
 	"net"
 	"runtime"
-	"syscall"
-
-	"io/ioutil"
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
@@ -61,59 +58,6 @@ func loadNetConf(bytes []byte) (*NetConf, string, error) {
 		return nil, "", fmt.Errorf("failed to load netconf: %v", err)
 	}
 	return n, n.CNIVersion, nil
-}
-
-func ensureBridgeAddr(br *netlink.Bridge, family int, ipn *net.IPNet, forceAddress bool) error {
-	addrs, err := netlink.AddrList(br, family)
-	if err != nil && err != syscall.ENOENT {
-		return fmt.Errorf("could not get list of IP addresses: %v", err)
-	}
-
-	ipnStr := ipn.String()
-	for _, a := range addrs {
-
-		// string comp is actually easiest for doing IPNet comps
-		if a.IPNet.String() == ipnStr {
-			return nil
-		}
-
-		// Multiple IPv6 addresses are allowed on the bridge if the
-		// corresponding subnets do not overlap. For IPv4 or for
-		// overlapping IPv6 subnets, reconfigure the IP address if
-		// forceAddress is true, otherwise throw an error.
-		if family == netlink.FAMILY_V4 || a.IPNet.Contains(ipn.IP) || ipn.Contains(a.IPNet.IP) {
-			if forceAddress {
-				if err = deleteBridgeAddr(br, a.IPNet); err != nil {
-					return err
-				}
-			} else {
-				return fmt.Errorf("%q already has an IP address different from %v", br.Name, ipnStr)
-			}
-		}
-	}
-
-	addr := &netlink.Addr{IPNet: ipn, Label: ""}
-	if err := netlink.AddrAdd(br, addr); err != nil {
-		return fmt.Errorf("could not add IP address to %q: %v", br.Name, err)
-	}
-
-	// Set the bridge's MAC to itself. Otherwise, the bridge will take the
-	// lowest-numbered mac on the bridge, and will change as ifs churn
-	if err := netlink.LinkSetHardwareAddr(br, br.HardwareAddr); err != nil {
-		return fmt.Errorf("could not set bridge's mac: %v", err)
-	}
-
-	return nil
-}
-
-func deleteBridgeAddr(br *netlink.Bridge, ipn *net.IPNet) error {
-	addr := &netlink.Addr{IPNet: ipn, Label: ""}
-
-	if err := netlink.AddrDel(br, addr); err != nil {
-		return fmt.Errorf("could not remove IP address from %q: %v", br.Name, err)
-	}
-
-	return nil
 }
 
 func bridgeByName(name string) (*netlink.Bridge, error) {
@@ -205,11 +149,6 @@ func setupVeth(netns ns.NetNS, br *netlink.Bridge, ifName string, mtu int, hairp
 	return hostIface, contIface, nil
 }
 
-func calcGatewayIP(ipn *net.IPNet) net.IP {
-	nid := ipn.IP.Mask(ipn.Mask)
-	return ip.NextIP(nid)
-}
-
 func setupBridge(n *NetConf) (*netlink.Bridge, *current.Interface, error) {
 	// create bridge if necessary
 	br, err := ensureBridge(n.BrName, n.MTU, n.PromiscMode)
@@ -221,27 +160,6 @@ func setupBridge(n *NetConf) (*netlink.Bridge, *current.Interface, error) {
 		Name: br.Attrs().Name,
 		Mac:  br.Attrs().HardwareAddr.String(),
 	}, nil
-}
-
-// disableIPV6DAD disables IPv6 Duplicate Address Detection (DAD)
-// for an interface, if the interface does not support enhanced_dad.
-// We do this because interfaces with hairpin mode will see their own DAD packets
-func disableIPV6DAD(ifName string) error {
-	// ehanced_dad sends a nonce with the DAD packets, so that we can safely
-	// ignore ourselves
-	enh, err := ioutil.ReadFile(fmt.Sprintf("/proc/sys/net/ipv6/conf/%s/enhanced_dad", ifName))
-	if err == nil && string(enh) == "1\n" {
-		return nil
-	}
-	f := fmt.Sprintf("/proc/sys/net/ipv6/conf/%s/accept_dad", ifName)
-	return ioutil.WriteFile(f, []byte("0"), 0644)
-}
-
-func enableIPForward(family int) error {
-	if family == netlink.FAMILY_V4 {
-		return ip.EnableIP4Forward()
-	}
-	return ip.EnableIP6Forward()
 }
 
 func cmdAdd(args *skel.CmdArgs) error {
