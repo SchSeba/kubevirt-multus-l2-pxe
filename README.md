@@ -60,6 +60,7 @@ metadata:
   name: l2-bridge-conf
 spec: 
   config: '{
+      "name": "mynet",
       "cniVersion": "0.3.0",
       "type": "l2-bridge",
       "bridge": "<bridge-name>",
