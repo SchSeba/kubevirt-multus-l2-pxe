@@ -17,7 +17,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"net"
 	"runtime"
 
 	"github.com/containernetworking/cni/pkg/skel"
@@ -25,7 +24,6 @@ import (
 	"github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containernetworking/plugins/pkg/ip"
-	"github.com/containernetworking/plugins/pkg/ipam"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/vishvananda/netlink"
 )
@@ -207,12 +205,8 @@ func cmdAdd(args *skel.CmdArgs) error {
 }
 
 func cmdDel(args *skel.CmdArgs) error {
-	n, _, err := loadNetConf(args.StdinData)
+	_, _, err := loadNetConf(args.StdinData)
 	if err != nil {
-		return err
-	}
-
-	if err := ipam.ExecDel(n.IPAM.Type, args.StdinData); err != nil {
 		return err
 	}
 
@@ -223,10 +217,9 @@ func cmdDel(args *skel.CmdArgs) error {
 	// There is a netns so try to clean up. Delete can be called multiple times
 	// so don't return an error if the device is already removed.
 	// If the device isn't there then don't try to clean up IP masq either.
-	var ipnets []*net.IPNet
 	err = ns.WithNetNSPath(args.Netns, func(_ ns.NetNS) error {
 		var err error
-		ipnets, err = ip.DelLinkByNameAddr(args.IfName)
+		err = ip.DelLinkByName(args.IfName)
 		if err != nil && err == ip.ErrLinkNotFound {
 			return nil
 		}
@@ -241,6 +234,5 @@ func cmdDel(args *skel.CmdArgs) error {
 }
 
 func main() {
-	// TODO: implement plugin version
 	skel.PluginMain(cmdAdd, cmdDel, version.All)
 }

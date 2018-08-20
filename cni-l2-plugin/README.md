@@ -12,6 +12,7 @@ If the bridge is missing, the plugin will fail.
 ## Example configuration
 ```
 {
+    "name": "mynet",
 	"cniVersion": "0.3.0",
 	"type": "l2-bridge",
 	"bridge": "mynet0",
